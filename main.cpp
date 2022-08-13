@@ -1,5 +1,5 @@
 
-#include "tinyrenderer/tgaimage.h"
+#include "tgaimage/tgaimage.h"
 #include <iostream>
 #include <cmath>
 
