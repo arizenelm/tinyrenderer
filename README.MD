@@ -1,1 +1,1 @@
-Exercise of simple OpenGL realisation
+Exercise of a simple OpenGL realisation
