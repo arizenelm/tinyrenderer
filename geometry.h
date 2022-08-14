@@ -33,7 +33,7 @@ public:
     inline vec2<T> operator- (vec2<T> v) { return vec2<T>(x() - v.x(), y() - v.y()); }
     inline vec2<T> operator* (T l) { x() *= l; y() *= l; return this; }
 
-    template <class > friend std::ostream& operator<<(std::ostream&, const vec2&) {}
+    template <class > friend std::ostream& operator<<(std::ostream&, const vec2&);
 
 };
 
@@ -70,7 +70,7 @@ public:
     inline T norm() { return (x() * x() + y() * y() + z() * z() / sqrt(x() * x() + y() * y() + z() * z())); }
     inline void normalize() { T n = norm(); x() = x() / norm(); y() = y() / norm; z() = z() / norm(); }
 
-    template <class > friend std::ostream& operator<<(std::ostream&, const vec3&) {}
+    template <class > friend std::ostream& operator<<(std::ostream&, const vec3&);
 };
 
 template<class T> std::ostream& operator<<(std::ostream &o, const vec2<T> &v)
