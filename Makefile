@@ -11,7 +11,10 @@ tgaimage.o: tgaimage/tgaimage.cpp
 main.o: main.cpp
 	g++ -std=c++17 -c -o main.o main.cpp
 
-main: tgaimage.o main.o
+model.o: model.cpp
+	g++ -std=c++17 -c -o model.o model.cpp
+
+main: tgaimage.o main.o model.o
 	rm -f main
-	g++ -o main main.o tgaimage.o
-	rm main.o tgaimage.o
+	g++ -o main main.o tgaimage.o model.o
+	rm main.o tgaimage.o model.o

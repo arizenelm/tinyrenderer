@@ -1,5 +1,6 @@
 
 #include "tgaimage/tgaimage.h"
+#include "model.h"
 #include <iostream>
 #include <cmath>
 
@@ -61,7 +62,8 @@ int main()
 
     line(10, 99, 99, 92, image, white);
     line(10, 89, 20, 82, image, some_blue);
-    
+
+
     image.flip_vertically();
     image.write_tga_file("output.tga");
     return 0;
