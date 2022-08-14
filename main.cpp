@@ -3,6 +3,7 @@
 #include "model.h"
 #include <iostream>
 #include <cmath>
+#include <exception>
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
@@ -53,18 +54,46 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
 
 }
 
+void draw_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
+{
+    if (v.size() != 3)
+        throw (std::exception());
+    for (int i = 0; i < 3; i++)
+    {
+        line(v[i][0], v[i][1], v[(i+1) % 3][0], v[(i+1) % 3][1], image, color);
+    }
+}
+
+
 int main()
 {
-    TGAImage image(100, 100, TGAImage::RGB);
-    line(13, 20, 80, 40, image, white);
-    line(20, 13, 40, 80, image, red);
-    line(80, 40, 13, 20, image, red);
+    unsigned int HEIGHT = 1000;
+    unsigned int WIDTH = 1000;
+    TGAImage image(WIDTH, HEIGHT, TGAImage::RGB);
+    
+    Model model;
+    model.init("obj/african_head.obj");
 
-    line(10, 99, 99, 92, image, white);
-    line(10, 89, 20, 82, image, some_blue);
+    int n = model.nfaces();
+    std::vector<Vec3f> face(3);
 
 
-    image.flip_vertically();
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            //std::cout << model.faces[i][j] - 1 << std::endl;
+            face[j] = model.verts[model.faces[i][j] - 1];
+            //std::cout << face[j].x() << " " << face[j].y() << std::endl;
+            face[j].x() = ((face[j][0] + 1) / 2) * WIDTH;
+            face[j].y() = ((face[j][1] + 1) / 2) * HEIGHT;
+            //std::cout << face[j].x() << " " << face[j].y() << std::endl;
+        }
+        //std::cout << face[0].x() << " " << face[0].y() << face[1].x() << " " << face[1].y() << face[2].x() << " " << face[2].y() << std::endl;
+        draw_face(face, image, white); 
+    }
+
+    image.flip_horizontally();
     image.write_tga_file("output.tga");
     return 0;
 }

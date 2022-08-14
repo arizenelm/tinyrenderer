@@ -12,7 +12,7 @@ private:
     unsigned int n_verts;
     
 public:
-    std::vector<Vec3i> verts;
+    std::vector<Vec3f> verts;
     std::vector<std::vector<int>> faces;
 
     Model() : n_faces(0), n_verts(0) {}
