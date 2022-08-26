@@ -35,7 +35,7 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
     int dy = abs(y1 - y0);
     int inc = (y1 - y0) / abs(y1 - y0);
     int dy_2 = 2 * abs(y1 - y0);
-    image.set(y, x, color);   
+    image.set(y, x, color);   // fix needed? //
     do
     {
         x += 1;
@@ -68,13 +68,17 @@ void draw_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
 std::shared_ptr<std::vector<int>> raw_line_dx (int x0, int y0, int x1, int y1)
 {
     
-    std::unique_ptr<std::vector<int>> result = std::make_unique<std::vector<int>> (x1 - x0 + 1);
-    int y = y0;
+    std::unique_ptr<std::vector<int>> result = std::make_unique<std::vector<int>>();
+    std::cout << "vector size before resizing is " << result->size() << std::endl;
+    result->reserve(x1 - x0 + 1);
+    std::cout << "vector size after resizing is " << result->size() << std::endl;
+    float y = y0;
     int x = x0;
     float k = float(y1 - y0) / (x1 - x0);
     do
     {
-        result->push_back(y);
+        result->push_back(int(y));
+        std::cout << result->front() << " " << int(y) << std::endl;
         y += k;
         x++;
     } while (x < x1);
@@ -108,7 +112,9 @@ void draw_colored_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor c
         int mn = std::min(left_to_middle->at(x - l), left_to_right->at(x - l));
         int mx = std::max(left_to_middle->at(x - l), left_to_right->at(x - l));
         for (int y = mn; y <= mx; y++)
+        {
             image.set(x, y, color);
+        }
     }
     
 }
@@ -139,6 +145,15 @@ int main()
     }
 */
     
+
+    std::vector<Vec3f> colored_face;
+    colored_face.push_back(Vec3f(10, 10, 0));
+    colored_face.push_back(Vec3f(500, 100, 0));
+    colored_face.push_back(Vec3f(240, 700, 0));
+    std::cout << colored_face.size() << std::endl;    
+    draw_colored_face(colored_face, image, red);
+
+
     image.flip_horizontally();
     image.write_tga_file("output.tga");
     return 0;
