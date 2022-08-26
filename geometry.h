@@ -89,8 +89,6 @@ template<class T> std::ostream& operator<<(std::ostream &o, const vec3<T> &v)
 
 template<class T> T vec3<T>::operator[] (int i) const
 {
-    if (i < 0 || i >= 3) 
-        throw (std::out_of_range("out of range"));
     switch (i)
     {
         case 0:
@@ -102,6 +100,8 @@ template<class T> T vec3<T>::operator[] (int i) const
         case 2:
             return c_xyz.z;
             break;
+        default:
+            throw (std::out_of_range("out of range"));
     }
 }
 
