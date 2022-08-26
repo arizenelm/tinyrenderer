@@ -64,7 +64,7 @@ void draw_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
     }
 }
 
-
+//some comment//
 int main()
 {
     unsigned int HEIGHT = 1000;
