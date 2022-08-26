@@ -23,7 +23,7 @@ private:
 public:
     vec2() : c_xy{0, 0} {}
     vec2(T _x, T _y) : c_xy{_x, _y} {}
-    inline T operator[] (int i) {if (i < 0 || i >= 2) throw (std::out_of_range("out of range")); return raw[i];}
+    T operator[] (int) const;
     inline T& x()  { return c_xy.x; }
     inline T& y()  { return c_xy.y; }
     inline T& u()  { return c_ut.u; }
@@ -32,6 +32,7 @@ public:
     inline vec2<T> operator+ (vec2<T> v) { return vec2<T>(x() + v.x(), y() + v.y()); }
     inline vec2<T> operator- (vec2<T> v) { return vec2<T>(x() - v.x(), y() - v.y()); }
     inline vec2<T> operator* (T l) { x() *= l; y() *= l; return *this; }
+    vec2<T>& operator= (vec2<T> v) {x = v.x(); y = v.y(); return *this; }
 
     template <class > friend std::ostream& operator<<(std::ostream&, const vec2&);
 
@@ -101,6 +102,21 @@ template<class T> T vec3<T>::operator[] (int i) const
         case 2:
             return c_xyz.z;
             break;
+    }
+}
+
+template<class T> T vec2<T>::operator[] (int i) const
+{
+    switch (i)
+    {
+        case 0:
+            return c_xy.x;
+            break;
+        case 1:
+            return c_xy.y;
+            break;
+        default:
+            throw (std::out_of_range("out of range"));
     }
 }
 
