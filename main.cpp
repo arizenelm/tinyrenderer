@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cmath>
 #include <exception>
+#include <algorithm>
+#include <memory>
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
@@ -27,15 +29,13 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
     }    
     
     
-    int x;
-    int y;
-    x = x0;
-    y = y0;
+    int x = x0;
+    int y = y0;
     int dx = x1 - x0, dx_2 = x1 - x0;
     int dy = abs(y1 - y0);
     int inc = (y1 - y0) / abs(y1 - y0);
     int dy_2 = 2 * abs(y1 - y0);
-    image.set(y, x, color);
+    image.set(y, x, color);   
     do
     {
         x += 1;
@@ -57,11 +57,60 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
 void draw_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
 {
     if (v.size() != 3)
-        throw (std::exception());
+        throw (std::out_of_range("incorrect size of face"));
     for (int i = 0; i < 3; i++)
     {
         line(v[i][0], v[i][1], v[(i+1) % 3][0], v[(i+1) % 3][1], image, color);
     }
+}
+
+
+std::shared_ptr<std::vector<int>> raw_line_dx (int x0, int y0, int x1, int y1)
+{
+    
+    std::unique_ptr<std::vector<int>> result = std::make_unique<std::vector<int>> (x1 - x0 + 1);
+    int y = y0;
+    int x = x0;
+    float k = float(y1 - y0) / (x1 - x0);
+    do
+    {
+        result->push_back(y);
+        y += k;
+        x++;
+    } while (x < x1);
+    
+    return result;
+}
+
+
+void draw_colored_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
+{
+    draw_face(v, image, color);
+    Vec3f left, right, middle;
+    int l, r, m;
+    l = std::min( { v[0][0], v[1][0], v[2][0] } );
+    r = std::max( { v[0][0], v[1][0], v[2][0] } );
+    for (int i = 0; i < 3; i++)
+    {
+        if (v[i][0] == l)
+            left = v[i];
+        else if (v[i][0] == r)
+            right = v[i];
+        else
+            middle = v[i];
+    } 
+    m = middle[0];
+    auto left_to_right = raw_line_dx (left[0], left[1], right[0], right[1]);
+    auto left_to_middle = raw_line_dx (left[0], left[1], middle[0], middle[1]);
+    auto middle_to_right = raw_line_dx (middle[0], middle[1], right[0], right[1]);
+    for (int x = l; x <= m; x++)
+    {
+        int mn = std::min(left_to_middle->at(x - l), left_to_right->at(x - l));
+        int mx = std::max(left_to_middle->at(x - l), left_to_right->at(x - l));
+        for (int y = mn; y <= mx; y++)
+            image.set(x, y, color);
+    }
+    
 }
 
 
