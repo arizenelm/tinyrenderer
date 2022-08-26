@@ -126,22 +126,19 @@ int main()
     int n = model.nfaces();
     std::vector<Vec3f> face(3);
 
-
+/*
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < 3; j++)
         {
-            //std::cout << model.faces[i][j] - 1 << std::endl;
             face[j] = model.verts[model.faces[i][j] - 1];
-            //std::cout << face[j].x() << " " << face[j].y() << std::endl;
             face[j].x() = ((face[j][0] + 1) / 2) * WIDTH;
             face[j].y() = ((face[j][1] + 1) / 2) * HEIGHT;
-            //std::cout << face[j].x() << " " << face[j].y() << std::endl;
         }
-        //std::cout << face[0].x() << " " << face[0].y() << face[1].x() << " " << face[1].y() << face[2].x() << " " << face[2].y() << std::endl;
         draw_face(face, image, white); 
     }
-
+*/
+    
     image.flip_horizontally();
     image.write_tga_file("output.tga");
     return 0;
