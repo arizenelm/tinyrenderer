@@ -64,6 +64,7 @@ void draw_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
     }
 }
 
+<<<<<<< HEAD
 
 std::shared_ptr<std::vector<int>> raw_line_dx (int x0, int y0, int x1, int y1)
 {
@@ -120,6 +121,9 @@ void draw_colored_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor c
 }
 
 
+=======
+//some comment//
+>>>>>>> master
 int main()
 {
     unsigned int HEIGHT = 1000;
