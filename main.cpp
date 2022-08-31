@@ -6,11 +6,20 @@
 #include <exception>
 #include <algorithm>
 #include <memory>
+#include <random>
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0, 0, 255);
 const TGAColor some_random_color(154, 234, 99, 255);
 const TGAColor some_blue(15, 0, 220, 255);
+
+TGAColor random_color(int seed)
+{
+    std::ranlux24_base ranlux;
+    ranlux.seed(seed);
+    std::uniform_int_distribution<int> int_distribution(0, 255);
+    return TGAColor(int_distribution(ranlux), int_distribution(ranlux), int_distribution(ranlux)); 
+}
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) 
 {
@@ -78,7 +87,7 @@ std::shared_ptr<std::vector<int>> raw_line_dx (int x0, int y0, int x1, int y1)
         result->push_back(int(y));
         y += k;
         x++;
-    } while (x < x1);
+    } while (x <= x1);
     
     return result;
 }
@@ -89,22 +98,31 @@ void draw_colored_face (std::vector<Vec3f>& v, TGAImage& image, TGAColor color)
     draw_face(v, image, color);
     Vec3f left, right, middle;
     int l, r, m;
+
     if(v[0].x() > v[1].x())
         std::swap(v[0], v[1]);
     if(v[0].x() > v[2].x())
         std::swap(v[0], v[2]);
     if(v[1].x() > v[2].x())
         std::swap(v[1], v[2]);
+
     l = v[0].x();
     m = v[1].x();
     r = v[2].x();
+
+    left = v[0];
+    middle = v[1];
+    right = v[2];
+
     auto left_to_right = raw_line_dx (left[0], left[1], right[0], right[1]);
     auto left_to_middle = raw_line_dx (left[0], left[1], middle[0], middle[1]);
     auto middle_to_right = raw_line_dx (middle[0], middle[1], right[0], right[1]);
-    for (int x = l; x <= m; x++)
+    
+    for (int x = l; x <= r; x++)
     {
-        int mn = std::min(left_to_middle->at(x - l), left_to_right->at(x - l));
-        int mx = std::max(left_to_middle->at(x - l), left_to_right->at(x - l));
+        bool second_segment = x > m;
+        int mn = std::min((second_segment ? middle_to_right->at(x - m) : left_to_middle->at(x - l)), left_to_right->at(x - l));
+        int mx = std::max((second_segment ? middle_to_right->at(x - m) : left_to_middle->at(x - l)), left_to_right->at(x - l));
         for (int y = mn; y <= mx; y++)
         {
             image.set(x, y, color);
@@ -123,10 +141,12 @@ int main()
     Model model;
     model.init("obj/african_head.obj");
 
+    std::random_device rd;
+    int seed = rd();
+    std::cout << seed;
     int n = model.nfaces();
     std::vector<Vec3f> face(3);
 
-/*
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < 3; j++)
@@ -135,16 +155,12 @@ int main()
             face[j].x() = ((face[j][0] + 1) / 2) * WIDTH;
             face[j].y() = ((face[j][1] + 1) / 2) * HEIGHT;
         }
-        draw_face(face, image, white); 
+        draw_colored_face(face, image, random_color(rd())); 
     }
-*/
     
 
-    std::vector<Vec3f> colored_face;
-    colored_face.push_back(Vec3f(10, 10, 0));
-    colored_face.push_back(Vec3f(500, 100, 0));
-    colored_face.push_back(Vec3f(240, 700, 0));
-    draw_colored_face(colored_face, image, red);
+    //std::vector<Vec3f> colored_face = {Vec3f(10, 10, 0), Vec3f(500, 100, 0), Vec3f(240, 700, 0)};
+    //draw_colored_face(colored_face, image, red);
 
 
     image.flip_horizontally();
