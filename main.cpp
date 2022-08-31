@@ -69,16 +69,13 @@ std::shared_ptr<std::vector<int>> raw_line_dx (int x0, int y0, int x1, int y1)
 {
     
     std::unique_ptr<std::vector<int>> result = std::make_unique<std::vector<int>>();
-    std::cout << "vector size before resizing is " << result->size() << std::endl;
     result->reserve(x1 - x0 + 1);
-    std::cout << "vector size after resizing is " << result->size() << std::endl;
     float y = y0;
     int x = x0;
     float k = float(y1 - y0) / (x1 - x0);
     do
     {
         result->push_back(int(y));
-        std::cout << result->front() << " " << int(y) << std::endl;
         y += k;
         x++;
     } while (x < x1);
@@ -87,23 +84,20 @@ std::shared_ptr<std::vector<int>> raw_line_dx (int x0, int y0, int x1, int y1)
 }
 
 
-void draw_colored_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
+void draw_colored_face (std::vector<Vec3f>& v, TGAImage& image, TGAColor color)
 {
     draw_face(v, image, color);
     Vec3f left, right, middle;
     int l, r, m;
-    l = std::min( { v[0][0], v[1][0], v[2][0] } );
-    r = std::max( { v[0][0], v[1][0], v[2][0] } );
-    for (int i = 0; i < 3; i++)
-    {
-        if (v[i][0] == l)
-            left = v[i];
-        else if (v[i][0] == r)
-            right = v[i];
-        else
-            middle = v[i];
-    } 
-    m = middle[0];
+    if(v[0].x() > v[1].x())
+        std::swap(v[0], v[1]);
+    if(v[0].x() > v[2].x())
+        std::swap(v[0], v[2]);
+    if(v[1].x() > v[2].x())
+        std::swap(v[1], v[2]);
+    l = v[0].x();
+    m = v[1].x();
+    r = v[2].x();
     auto left_to_right = raw_line_dx (left[0], left[1], right[0], right[1]);
     auto left_to_middle = raw_line_dx (left[0], left[1], middle[0], middle[1]);
     auto middle_to_right = raw_line_dx (middle[0], middle[1], right[0], right[1]);
@@ -150,7 +144,6 @@ int main()
     colored_face.push_back(Vec3f(10, 10, 0));
     colored_face.push_back(Vec3f(500, 100, 0));
     colored_face.push_back(Vec3f(240, 700, 0));
-    std::cout << colored_face.size() << std::endl;    
     draw_colored_face(colored_face, image, red);
 
 
