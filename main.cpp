@@ -37,9 +37,12 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
     int dy = abs(y1 - y0);
     int inc = (y1 - y0) / abs(y1 - y0);
     int dy_2 = 2 * abs(y1 - y0);
-    image.set(y, x, color);   // fix needed? //
     do
     {
+        if (swapped)
+            image.set((int)y, x, color);
+        else
+            image.set(x, (int)y, color);
         x += 1;
         if (dy_2 >= dx_2)
         {
@@ -47,10 +50,6 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
             dx_2 += 2 * dx;
         }
         dy_2 += 2 * dy;
-        if (swapped)
-            image.set((int)y, x, color);
-        else
-            image.set(x, (int)y, color);
     } while (x < x1);
     
 
