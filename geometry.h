@@ -2,6 +2,7 @@
 #define GEOMETRY_H
 
 #include <exception>
+#include <cmath>
 #include <iostream>
 
 
@@ -61,6 +62,7 @@ public:
     inline T& x()  { return c_xyz.x; }
     inline T& y()  { return c_xyz.y; }
     inline T& z()  { return c_xyz.z; }
+    T& at(int);
 
     //inline T& u() {return c_ut.u}
     //inline T& t() {return c_ut.t}
@@ -69,8 +71,8 @@ public:
     inline vec3<T> operator- (vec3<T> v) { return vec3<T>(x() - v.x(), y() - v.y()); }
     inline vec3<T> operator* (T l) { x() *= l; y() *= l; z() *= l; return this; }
     inline vec3<T>& operator= (vec3<T> const& v) {x() = v[0]; y() = v[1]; z() = v[2]; return *this; }
-    inline T norm() { return (x() * x() + y() * y() + z() * z() / sqrt(x() * x() + y() * y() + z() * z())); }
-    inline void normalize() { T n = norm(); x() = x() / norm(); y() = y() / norm; z() = z() / norm(); }
+    inline T norm() { return (sqrt(x() * x() + y() * y() + z() * z())); }
+    inline void normalize() { T n = norm(); x() = x() / n; y() = y() / n; z() = z() / n; }
 
     template <class > friend std::ostream& operator<<(std::ostream&, const vec3&);
 };
@@ -99,6 +101,24 @@ template<class T> T vec3<T>::operator[] (int i) const
             break;
         case 2:
             return c_xyz.z;
+            break;
+        default:
+            throw (std::out_of_range("out of range"));
+    }
+}
+
+template<class T> T& vec3<T>::at(int i) 
+{
+    switch (i)
+    {
+        case 0:
+            return x(); 
+            break;
+        case 1:
+            return y();
+            break;
+        case 2:
+            return z();
             break;
         default:
             throw (std::out_of_range("out of range"));

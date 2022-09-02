@@ -13,13 +13,6 @@ const TGAColor red = TGAColor(255, 0, 0, 255);
 const TGAColor some_random_color(154, 234, 99, 255);
 const TGAColor some_blue(15, 0, 220, 255);
 
-TGAColor random_color(int seed)
-{
-    std::ranlux24_base ranlux;
-    ranlux.seed(seed);
-    std::uniform_int_distribution<int> int_distribution(0, 255);
-    return TGAColor(int_distribution(ranlux), int_distribution(ranlux), int_distribution(ranlux)); 
-}
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) 
 {
@@ -96,7 +89,6 @@ std::shared_ptr<std::vector<int>> raw_line_dx (int x0, int y0, int x1, int y1)
 void draw_colored_face (std::vector<Vec3f>& v, TGAImage& image, TGAColor color)
 {
     draw_face(v, image, color);
-    Vec3f left, right, middle;
     int l, r, m;
 
     if(v[0].x() > v[1].x())
@@ -110,13 +102,9 @@ void draw_colored_face (std::vector<Vec3f>& v, TGAImage& image, TGAColor color)
     m = v[1].x();
     r = v[2].x();
 
-    left = v[0];
-    middle = v[1];
-    right = v[2];
-
-    auto left_to_right = raw_line_dx (left[0], left[1], right[0], right[1]);
-    auto left_to_middle = raw_line_dx (left[0], left[1], middle[0], middle[1]);
-    auto middle_to_right = raw_line_dx (middle[0], middle[1], right[0], right[1]);
+    auto left_to_right = raw_line_dx (v[0].x(), v[0].y(), v[2].x(), v[2].y());
+    auto left_to_middle = raw_line_dx (v[0].x(), v[0].y(), v[1].x(), v[1].y());
+    auto middle_to_right = raw_line_dx (v[1].x(), v[1].y(), v[2].x(), v[2].y());
     
     for (int x = l; x <= r; x++)
     {
@@ -143,21 +131,37 @@ int main()
 
     std::random_device rd;
     int seed = rd();
-    std::cout << seed;
+    std::default_random_engine generator(seed);
+    typedef std::uniform_int_distribution<int> random_int;
+    random_int random_color(0, 255);
     int n = model.nfaces();
     std::vector<Vec3f> face(3);
+    std::vector<Vec3f> world_coords(3);
 
+    Vec3f light_dir(0.2, 0, 1);
+ 
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < 3; j++)
         {
-            face[j] = model.verts[model.faces[i][j] - 1];
+            face[j] = world_coords[j] = model.verts[model.faces[i][j] - 1];
             face[j].x() = ((face[j][0] + 1) / 2) * WIDTH;
             face[j].y() = ((face[j][1] + 1) / 2) * HEIGHT;
         }
-        draw_colored_face(face, image, random_color(rd())); 
+        std::vector<Vec3f> v;
+        v.reserve(2);
+        v.push_back(Vec3f(world_coords[1].x() - world_coords[0].x(), world_coords[1].y() - world_coords[0].y(), world_coords[1].z() - world_coords[0].z()));
+        v.push_back(Vec3f(world_coords[2].x() - world_coords[0].x(), world_coords[2].y() - world_coords[0].y(), world_coords[2].z() - world_coords[0].z()));
+        Vec3f n;
+        for (int j = 0; j < 3; j++)
+           n.at(j) = v[0][(j + 1) % 3] * v[1][(j + 2) % 3] - v[0][(j + 2) % 3] * v[1][(j + 1) % 3];
+        n.normalize();
+        light_dir.normalize();
+        float intensity = light_dir[0] * n[0] + light_dir[1] * n[1] + light_dir[2] * n[2]; 
+        if (intensity > 0)
+            draw_colored_face(face, image, TGAColor(255 * intensity, 255 * intensity, 255 * intensity, 255)); 
     }
-    
+  
 
     //std::vector<Vec3f> colored_face = {Vec3f(10, 10, 0), Vec3f(500, 100, 0), Vec3f(240, 700, 0)};
     //draw_colored_face(colored_face, image, red);
