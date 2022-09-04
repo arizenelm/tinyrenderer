@@ -1,4 +1,4 @@
 .vscode
-.tga
+*.tga
 main
 output.txt
