@@ -1,12 +1,17 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.24)
 
 project(render)
 
 set (SOURCES main.cpp model.cpp)
+set (HEADERS model.h geometry.h)
 
 add_subdirectory(tgaimage)
 include_directories(tgaimage)
 
-add_executable(main ${SOURCES})
-set_target_properties(main PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+add_executable(main ${SOURCES} ${HEADERS})
+set_target_properties(main PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON 
+                                CXX_EXTENSIONS OFF)
+if (CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+endif()
 target_link_libraries(main tgaimage)

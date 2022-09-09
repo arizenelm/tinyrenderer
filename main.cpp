@@ -102,17 +102,23 @@ void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<
     int l, r, m;
 
     if(face.v[0].x() > face.v[1].x())
+    {
         std::swap(face.v[0], face.v[1]);
         std::swap(face.vt[0], face.vt[1]);
         std::swap(face.vn[0], face.vn[1]);
+    }
     if(face.v[0].x() > face.v[2].x())        
+    {
         std::swap(face.v[0], face.v[2]);
         std::swap(face.vt[0], face.vt[2]);
         std::swap(face.vn[0], face.vn[2]);
+    }
     if(face.v[1].x() > face.v[2].x())        
+    {
         std::swap(face.v[1], face.v[2]);
         std::swap(face.vt[1], face.vt[2]);
         std::swap(face.vn[1], face.vn[2]);
+    }
 
     l = face.v[0].x();
     m = face.v[1].x();
