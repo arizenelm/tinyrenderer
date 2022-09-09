@@ -22,6 +22,11 @@ struct Face
     std::vector<Vec3f> vn = { Vec3f({0, 0, 0}),  Vec3f({0, 0, 0}),  Vec3f({0, 0, 0})};
 };
 
+inline float scalar_mult(Vec3f const& a, Vec3f const& b)
+{
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) 
 {
     bool swapped = false;
@@ -74,22 +79,36 @@ void draw_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
 }
 
 
-std::shared_ptr<std::vector<int>> raw_line_dydz (int x0, int y0, int z0, int x1, int y1, int z1)
+std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i0, Vec3f& i1, Vec3f& t0, Vec3f& t1, Vec3f& light_dir)
 {
     
-    std::unique_ptr<std::vector<int>> result = std::make_unique<std::vector<int>>();
-    result->reserve((x1 - x0 + 1) * 2);
+    std::unique_ptr<std::vector<float>> result = std::make_unique<std::vector<float>>();
+
+    int x0 = v0.x();
+    int y0 = v0.y();
+    int z0 = v0.z();
+    int x1 = v1.x();
+    int y1 = v1.y();
+    int z1 = v1.z();
+    float intens0 = scalar_mult(light_dir, i0);
+    float intens1 = scalar_mult(light_dir, i1);
+
+    result->reserve((x1 - x0 + 1) * 3);
     float y = y0;
     float z = z0;
+    float intens = intens0;
     int x = x0;
     float k1 = float(y1 - y0) / (x1 - x0);
     float k2 = float(z1 - z0) / (x1 - x0);
+    float k3 = float(intens1 - intens0) / (x1 - x0);
     do
     {
         result->push_back(int(y));
         result->push_back(int(z));
+        result->push_back(intens);
         y += k1;
         z += k2;
+        intens += k3;
         x++;
     } while (x <= x1);
     
@@ -97,7 +116,7 @@ std::shared_ptr<std::vector<int>> raw_line_dydz (int x0, int y0, int z0, int x1,
 }
 
 
-void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<int>& zbuffer)
+void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<int>& zbuffer, Vec3f& light_dir)
 {
     int l, r, m;
 
@@ -124,28 +143,36 @@ void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<
     m = face.v[1].x();
     r = face.v[2].x();
 
-    auto left_to_right = raw_line_dydz (face.v[0].x(), face.v[0].y(), face.v[0].z(), face.v[2].x(), face.v[2].y(), face.v[2].z());
-    auto left_to_middle = raw_line_dydz (face.v[0].x(), face.v[0].y(), face.v[0].z(), face.v[1].x(), face.v[1].y(), face.v[1].z());
-    auto middle_to_right = raw_line_dydz (face.v[1].x(), face.v[1].y(), face.v[1].z(), face.v[2].x(), face.v[2].y(), face.v[2].z());
+    auto left_to_right = raw_line_all (face.v[0], face.v[2], face.vn[0], face.vn[2], face.vt[0], face.vt[2], light_dir);
+    auto left_to_middle = raw_line_all (face.v[0], face.v[1], face.vn[0], face.vn[1], face.vt[0], face.vt[1], light_dir);
+    auto middle_to_right = raw_line_all (face.v[1], face.v[2], face.vn[1], face.vn[2], face.vt[1], face.vt[2], light_dir);
     
     for (int x = l; x <= r; x++)
     {
         bool second_segment = x > m;
-        int y0 = std::min((second_segment ? middle_to_right->at((x - m) * 2) : left_to_middle->at((x - l) * 2)), left_to_right->at((x - l) * 2));
-        int y1 = std::max((second_segment ? middle_to_right->at((x - m) * 2) : left_to_middle->at((x - l) * 2)), left_to_right->at((x - l) * 2));
+        int y0 = std::min((second_segment ? middle_to_right->at((x - m) * 3) : left_to_middle->at((x - l) * 3)), left_to_right->at((x - l) * 3));
+        int y1 = std::max((second_segment ? middle_to_right->at((x - m) * 3) : left_to_middle->at((x - l) * 3)), left_to_right->at((x - l) * 3));
 
-        int z0 = std::min((second_segment ? middle_to_right->at((x - m) * 2 + 1) : left_to_middle->at((x - l) * 2 + 1)), left_to_right->at((x - l) * 2 + 1));
-        int z1 = std::max((second_segment ? middle_to_right->at((x - m) * 2 + 1) : left_to_middle->at((x - l) * 2 + 1)), left_to_right->at((x - l) * 2 + 1));
-        float k = float(z1 - z0) / (y1 - y0);
+        int z0 = std::min((second_segment ? middle_to_right->at((x - m) * 3 + 1) : left_to_middle->at((x - l) * 3 + 1)), left_to_right->at((x - l) * 3 + 1));
+        int z1 = std::max((second_segment ? middle_to_right->at((x - m) * 3 + 1) : left_to_middle->at((x - l) * 3 + 1)), left_to_right->at((x - l) * 3 + 1));
+
+        float intens0 = std::min((second_segment ? middle_to_right->at((x - m) * 3 + 2) : left_to_middle->at((x - l) * 3 + 2)), left_to_right->at((x - l) * 3 + 2));
+        float intens1 = std::max((second_segment ? middle_to_right->at((x - m) * 3 + 2) : left_to_middle->at((x - l) * 3 + 2)), left_to_right->at((x - l) * 3 + 2));
+
+        float k1 = float(z1 - z0) / (y1 - y0);
+        float k2 = float(intens1 - intens0) / (y1 - y0);
         float z = z0;
+        float intensity = intens0;
         for (int y = y0; y <= y1; y++)
         {
             if (zbuffer[x + y * WIDTH] < z)
             {
-                image.set(x, y, color);
+                //if (intensity > 0)
+                image.set(x, y, TGAColor(255 * intensity, 255 * intensity, 255 * intensity));
                 zbuffer[x + y * WIDTH] = (int)z;
             }
-            z += k;
+            z += k1;
+            intensity += k2;
         }
     }
     
@@ -169,7 +196,7 @@ int main()
     std::vector<Vec3f> world_coords(3);
     std::vector<int> zbuffer(WIDTH * HEIGHT);
 
-    Vec3f light_dir(1, 0, 1);
+    Vec3f light_dir(0, 0, 1);
     light_dir.normalize();
  
     for (int i = 0; i < n; i++)
@@ -193,7 +220,7 @@ int main()
         norm.normalize();
         float intensity = light_dir[0] * norm[0] + light_dir[1] * norm[1] + light_dir[2] * norm[2]; 
         if (intensity > 0)
-            draw_colored_face(face, image, TGAColor(255 * intensity, 255 * intensity, 255 * intensity, 255), zbuffer); 
+            draw_colored_face(face, image, white, zbuffer, light_dir); 
     }
   
 
