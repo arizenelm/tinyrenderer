@@ -13,7 +13,15 @@ private:
     
 public:
     std::vector<Vec3f> verts;
-    std::vector<std::vector<int>> faces;
+    std::vector<Vec3f> norms;
+    std::vector<Vec3f> textures;
+    struct Face
+    {
+        Vec3i v = {0, 0, 0};
+        Vec3i vt = {0, 0, 0};
+        Vec3i vn = {0, 0, 0};
+    };
+    std::vector<Face> faces;
 
     Model() : n_faces(0), n_verts(0) {}
 

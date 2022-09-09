@@ -15,6 +15,12 @@ const TGAColor some_blue(15, 0, 220, 255);
 unsigned int HEIGHT = 1000;
 unsigned int WIDTH = 1000;
 
+struct Face
+{
+    std::vector<Vec3f> v = { Vec3f({0, 0, 0}),  Vec3f({0, 0, 0}),  Vec3f({0, 0, 0})};
+    std::vector<Vec3f> vt = { Vec3f({0, 0, 0}),  Vec3f({0, 0, 0}),  Vec3f({0, 0, 0})};
+    std::vector<Vec3f> vn = { Vec3f({0, 0, 0}),  Vec3f({0, 0, 0}),  Vec3f({0, 0, 0})};
+};
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) 
 {
@@ -91,24 +97,30 @@ std::shared_ptr<std::vector<int>> raw_line_dydz (int x0, int y0, int z0, int x1,
 }
 
 
-void draw_colored_face (std::vector<Vec3f>& v, TGAImage& image, TGAColor color, std::vector<int>& zbuffer)
+void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<int>& zbuffer)
 {
     int l, r, m;
 
-    if(v[0].x() > v[1].x())
-        std::swap(v[0], v[1]);
-    if(v[0].x() > v[2].x())
-        std::swap(v[0], v[2]);
-    if(v[1].x() > v[2].x())
-        std::swap(v[1], v[2]);
+    if(face.v[0].x() > face.v[1].x())
+        std::swap(face.v[0], face.v[1]);
+        std::swap(face.vt[0], face.vt[1]);
+        std::swap(face.vn[0], face.vn[1]);
+    if(face.v[0].x() > face.v[2].x())        
+        std::swap(face.v[0], face.v[2]);
+        std::swap(face.vt[0], face.vt[2]);
+        std::swap(face.vn[0], face.vn[2]);
+    if(face.v[1].x() > face.v[2].x())        
+        std::swap(face.v[1], face.v[2]);
+        std::swap(face.vt[1], face.vt[2]);
+        std::swap(face.vn[1], face.vn[2]);
 
-    l = v[0].x();
-    m = v[1].x();
-    r = v[2].x();
+    l = face.v[0].x();
+    m = face.v[1].x();
+    r = face.v[2].x();
 
-    auto left_to_right = raw_line_dydz (v[0].x(), v[0].y(), v[0].z(), v[2].x(), v[2].y(), v[2].z());
-    auto left_to_middle = raw_line_dydz (v[0].x(), v[0].y(), v[0].z(), v[1].x(), v[1].y(), v[1].z());
-    auto middle_to_right = raw_line_dydz (v[1].x(), v[1].y(), v[1].z(), v[2].x(), v[2].y(), v[2].z());
+    auto left_to_right = raw_line_dydz (face.v[0].x(), face.v[0].y(), face.v[0].z(), face.v[2].x(), face.v[2].y(), face.v[2].z());
+    auto left_to_middle = raw_line_dydz (face.v[0].x(), face.v[0].y(), face.v[0].z(), face.v[1].x(), face.v[1].y(), face.v[1].z());
+    auto middle_to_right = raw_line_dydz (face.v[1].x(), face.v[1].y(), face.v[1].z(), face.v[2].x(), face.v[2].y(), face.v[2].z());
     
     for (int x = l; x <= r; x++)
     {
@@ -147,11 +159,11 @@ int main()
     typedef std::uniform_int_distribution<int> random_int;
     random_int random_color(0, 255);
     int n = model.nfaces();
-    std::vector<Vec3f> face(3);
+    Face face;
     std::vector<Vec3f> world_coords(3);
     std::vector<int> zbuffer(WIDTH * HEIGHT);
 
-    Vec3f light_dir(0.9, 0, 1);
+    Vec3f light_dir(1, 0, 1);
     light_dir.normalize();
  
     for (int i = 0; i < n; i++)
@@ -159,21 +171,22 @@ int main()
         for (int j = 0; j < 3; j++)
         {
        
-            face[j] = world_coords[j] = model.verts[model.faces[i][j] - 1];
-            face[j].x() = ((face[j][0] + 1) / 2) * WIDTH;
-            face[j].y() = ((face[j][1] + 1) / 2) * HEIGHT;
-            face[j].z() = ((face[j][2] + 1) / 2) * HEIGHT;
+            face.v[j] = world_coords[j] = model.verts[model.faces[i].v[j] - 1];
+            face.vt[j] = model.textures[model.faces[i].vt[j] - 1];
+            face.vn[j] = model.norms[model.faces[i].vt[j] - 1];
+            face.v[j].x() = ((face.v[j].x() + 1) / 2) * WIDTH;
+            face.v[j].y() = ((face.v[j].y() + 1) / 2) * HEIGHT;
+            face.v[j].z() = ((face.v[j].z() + 1) / 2) * HEIGHT;
         }
-        std::vector<Vec3f> v;
-        v.reserve(2);
-        v.push_back(Vec3f(world_coords[1].x() - world_coords[0].x(), world_coords[1].y() - world_coords[0].y(), world_coords[1].z() - world_coords[0].z()));
-        v.push_back(Vec3f(world_coords[2].x() - world_coords[0].x(), world_coords[2].y() - world_coords[0].y(), world_coords[2].z() - world_coords[0].z()));
+        std::vector<Vec3f> basis(2);
+        basis[0] = Vec3f(world_coords[1].x() - world_coords[0].x(), world_coords[1].y() - world_coords[0].y(), world_coords[1].z() - world_coords[0].z());
+        basis[1] = Vec3f(world_coords[2].x() - world_coords[0].x(), world_coords[2].y() - world_coords[0].y(), world_coords[2].z() - world_coords[0].z());
         Vec3f norm;
         for (int j = 0; j < 3; j++)
-           norm.at(j) = v[0][(j + 1) % 3] * v[1][(j + 2) % 3] - v[0][(j + 2) % 3] * v[1][(j + 1) % 3];
+           norm.at(j) = basis[0][(j + 1) % 3] * basis[1][(j + 2) % 3] - basis[0][(j + 2) % 3] * basis[1][(j + 1) % 3];
         norm.normalize();
         float intensity = light_dir[0] * norm[0] + light_dir[1] * norm[1] + light_dir[2] * norm[2]; 
-        //if (intensity > 0)
+        if (intensity > 0)
             draw_colored_face(face, image, TGAColor(255 * intensity, 255 * intensity, 255 * intensity, 255), zbuffer); 
     }
   

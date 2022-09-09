@@ -4,6 +4,7 @@
 #include <exception>
 #include <cmath>
 #include <iostream>
+#include <array>
 
 
 template <class T> class vec2
@@ -58,6 +59,7 @@ public:
 
     vec3() : c_xyz{0, 0, 0} {}
     vec3(T _x, T _y, T _z) : c_xyz{_x, _y, _z} {}
+    //vec3(std::array<T, 3> arr) {c_xyz.x(arr[0]); c_xyz.y(arr[1]); c_xyz.z(arr[2]); return *this;}
     T operator[] (int) const;
     inline T& x()  { return c_xyz.x; }
     inline T& y()  { return c_xyz.y; }
@@ -71,6 +73,7 @@ public:
     inline vec3<T> operator- (vec3<T> v) { return vec3<T>(x() - v.x(), y() - v.y()); }
     inline vec3<T> operator* (T l) { x() *= l; y() *= l; z() *= l; return this; }
     inline vec3<T>& operator= (vec3<T> const& v) {x() = v[0]; y() = v[1]; z() = v[2]; return *this; }
+    inline vec3<T>& operator= (std::array<T, 3> arr) { c_xyz.x(arr[0]); c_xyz.y(arr[1]); c_xyz.z(arr[2]); return *this; }
     inline T norm() { return (sqrt(x() * x() + y() * y() + z() * z())); }
     inline void normalize() { T n = norm(); x() = x() / n; y() = y() / n; z() = z() / n; }
 
