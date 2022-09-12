@@ -90,8 +90,12 @@ std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i
     int x1 = v1.x();
     int y1 = v1.y();
     int z1 = v1.z();
-    float intens0 = scalar_mult(light_dir, i0);
-    float intens1 = scalar_mult(light_dir, i1);
+    i0.normalize();
+    i1.normalize();
+
+    float intens0 = std::abs(scalar_mult(light_dir, i0));
+    float intens1 = std::abs(scalar_mult(light_dir, i1));
+
 
     result->reserve((x1 - x0 + 1) * 3);
     float y = y0;
@@ -156,14 +160,19 @@ void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<
         int z0 = std::min((second_segment ? middle_to_right->at((x - m) * 3 + 1) : left_to_middle->at((x - l) * 3 + 1)), left_to_right->at((x - l) * 3 + 1));
         int z1 = std::max((second_segment ? middle_to_right->at((x - m) * 3 + 1) : left_to_middle->at((x - l) * 3 + 1)), left_to_right->at((x - l) * 3 + 1));
 
-        float intens0 = std::min((second_segment ? middle_to_right->at((x - m) * 3 + 2) : left_to_middle->at((x - l) * 3 + 2)), left_to_right->at((x - l) * 3 + 2));
-        float intens1 = std::max((second_segment ? middle_to_right->at((x - m) * 3 + 2) : left_to_middle->at((x - l) * 3 + 2)), left_to_right->at((x - l) * 3 + 2));
+        float intens0 = (y0 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 2) : 
+                (second_segment ? middle_to_right->at((x - m) * 3 + 2) : left_to_middle->at((x - l) * 3 + 2)));
+        float intens1 = (y1 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 2) : 
+                (second_segment ? middle_to_right->at((x - m) * 3 + 2) : left_to_middle->at((x - l) * 3 + 2)));
+
+        if (std::abs(intens0) > 1 || std::abs(intens1) > 1)
+            throw (std::overflow_error("intensity overflow"));
 
         float k1 = float(z1 - z0) / (y1 - y0);
         float k2 = float(intens1 - intens0) / (y1 - y0);
         float z = z0;
         float intensity = intens0;
-        for (int y = y0; y <= y1; y++)
+        for (int y = y0; y < y1; y++)
         {
             if (zbuffer[x + y * WIDTH] < z)
             {
@@ -185,12 +194,6 @@ int main()
     
     Model model;
     model.init("obj/african_head.obj");
-
-    std::random_device rd;
-    int seed = rd();
-    std::default_random_engine generator(seed);
-    typedef std::uniform_int_distribution<int> random_int;
-    random_int random_color(0, 255);
     int n = model.nfaces();
     Face face;
     std::vector<Vec3f> world_coords(3);
@@ -206,7 +209,7 @@ int main()
        
             face.v[j] = world_coords[j] = model.verts[model.faces[i].v[j] - 1];
             face.vt[j] = model.textures[model.faces[i].vt[j] - 1];
-            face.vn[j] = model.norms[model.faces[i].vt[j] - 1];
+            face.vn[j] = model.norms[model.faces[i].vn[j] - 1];
             face.v[j].x() = ((face.v[j].x() + 1) / 2) * WIDTH;
             face.v[j].y() = ((face.v[j].y() + 1) / 2) * HEIGHT;
             face.v[j].z() = ((face.v[j].z() + 1) / 2) * HEIGHT;
@@ -218,9 +221,16 @@ int main()
         for (int j = 0; j < 3; j++)
            norm.at(j) = basis[0][(j + 1) % 3] * basis[1][(j + 2) % 3] - basis[0][(j + 2) % 3] * basis[1][(j + 1) % 3];
         norm.normalize();
-        float intensity = light_dir[0] * norm[0] + light_dir[1] * norm[1] + light_dir[2] * norm[2]; 
+        float intensity = light_dir[0] * norm[0] + light_dir[1] * norm[1] + light_dir[2] * norm[2];
+        try {
         if (intensity > 0)
-            draw_colored_face(face, image, white, zbuffer, light_dir); 
+            draw_colored_face(face, image, white, zbuffer, light_dir);
+        }
+        catch (std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+            return 0;
+        }
     }
   
 
