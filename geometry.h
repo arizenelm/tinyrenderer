@@ -18,7 +18,6 @@ private:
     union 
     {
         coords c_xy;
-        coords c_ut;
         T raw[2];
     };
     
@@ -28,13 +27,14 @@ public:
     T operator[] (int) const;
     inline T& x()  { return c_xy.x; }
     inline T& y()  { return c_xy.y; }
-    inline T& u()  { return c_ut.u; }
-    inline T& t()  { return c_ut.t; } 
+    inline T& u()  { return c_xy.x; }
+    inline T& t()  { return c_xy.y; } 
+    T& at(int);
 
     inline vec2<T> operator+ (vec2<T> v) { return vec2<T>(x() + v.x(), y() + v.y()); }
     inline vec2<T> operator- (vec2<T> v) { return vec2<T>(x() - v.x(), y() - v.y()); }
     inline vec2<T> operator* (T l) { x() *= l; y() *= l; return *this; }
-    vec2<T>& operator= (vec2<T> v) {x = v.x(); y = v.y(); return *this; }
+    vec2<T>& operator= (vec2<T> v) {c_xy.x = v.x(); c_xy.y = v.y(); return *this; }
 
     template <class > friend std::ostream& operator<<(std::ostream&, const vec2&);
 
@@ -122,6 +122,21 @@ template<class T> T& vec3<T>::at(int i)
             break;
         case 2:
             return z();
+            break;
+        default:
+            throw (std::out_of_range("out of range"));
+    }
+}
+
+template<class T> T& vec2<T>::at(int i) 
+{
+    switch (i)
+    {
+        case 0:
+            return x(); 
+            break;
+        case 1:
+            return y();
             break;
         default:
             throw (std::out_of_range("out of range"));

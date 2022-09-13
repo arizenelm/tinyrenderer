@@ -17,7 +17,7 @@ unsigned int WIDTH = 1000;
 struct Face
 {
     std::vector<Vec3f> v = { Vec3f({0, 0, 0}),  Vec3f({0, 0, 0}),  Vec3f({0, 0, 0})};
-    std::vector<Vec3f> vt = { Vec3f({0, 0, 0}),  Vec3f({0, 0, 0}),  Vec3f({0, 0, 0})};
+    std::vector<Vec2f> vt = { Vec2f({0, 0}),  Vec2f({0, 0}),  Vec2f({0, 0}) };
     std::vector<Vec3f> vn = { Vec3f({0, 0, 0}),  Vec3f({0, 0, 0}),  Vec3f({0, 0, 0})};
 };
 
@@ -78,16 +78,12 @@ void draw_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
 }
 
 
-std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i0, Vec3f& i1, Vec3f& vt0, Vec3f& vt1, Vec3f& light_dir)
+std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i0, Vec3f& i1, int t0, int t1, Vec3f& light_dir)
 {
     
     std::unique_ptr<std::vector<float>> result = std::make_unique<std::vector<float>>();
 
     int x0 = v0.x();
-    //int u0 = vt0.u();
-    //int t0 = vt0.t();
-    //int u1 = vt1.u();
-    //int t1 = vt0.t();
     int y0 = v0.y();
     int z0 = v0.z();
     int x1 = v1.x();
@@ -97,12 +93,11 @@ std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i
     i0.normalize();
     i1.normalize();
 
-    float intens0 = std::abs(scalar_mult(light_dir, i0));  // TODO: Подумать зачем тут нужен модуль //  
+    float intens0 = std::abs(scalar_mult(light_dir, i0));  // TODO: why is abs needed here? //  
     float intens1 = std::abs(scalar_mult(light_dir, i1));
 
-    result->reserve((x1 - x0 + 1) * 3);
-    //float u = u0;
-    //float t = t0;
+    result->reserve((x1 - x0 + 1) * 4);
+    float t = t0;
     float y = y0;
     float z = z0;
     float intens = intens0;
@@ -110,16 +105,17 @@ std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i
     float k1 = float(y1 - y0) / (x1 - x0);
     float k2 = float(z1 - z0) / (x1 - x0);
     float k3 = float(intens1 - intens0) / (x1 - x0);
-    //float k4 = float(t1 - t0) / (x1 - x0);
+    float k4 = float(t1 - t0) / (x1 - x0);
     do
     {
         result->push_back(int(y + 0.5));
         result->push_back(int(z + 0.5));
         result->push_back(intens);
-        //result->push_back(t);
+        result->push_back(t);
         y += k1;
         z += k2;
         intens += k3;
+        t += k4;
         x++;
     } while (x <= x1);
     
@@ -127,7 +123,7 @@ std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i
 }
 
 
-void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<int>& zbuffer, Vec3f& light_dir)
+void draw_colored_face (Face face, TGAImage& image, TGAImage& texture, std::vector<int>& zbuffer, Vec3f& light_dir)
 {
     int l, r, m;
 
@@ -154,42 +150,53 @@ void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<
     m = face.v[1].x();
     r = face.v[2].x();
 
-    auto left_to_right = raw_line_all (face.v[0], face.v[2], face.vn[0], face.vn[2], face.vt[0], face.vt[2], light_dir);
-    auto left_to_middle = raw_line_all (face.v[0], face.v[1], face.vn[0], face.vn[1], face.vt[0], face.vt[1], light_dir);
-    auto middle_to_right = raw_line_all (face.v[1], face.v[2], face.vn[1], face.vn[2], face.vt[1], face.vt[2], light_dir);
+    auto left_to_right = raw_line_all (face.v[0], face.v[2], face.vn[0], face.vn[2], face.vt[0].t(), face.vt[2].t(), light_dir);
+    auto left_to_middle = raw_line_all (face.v[0], face.v[1], face.vn[0], face.vn[1], face.vt[0].t(), face.vt[1].t(), light_dir);
+    auto middle_to_right = raw_line_all (face.v[1], face.v[2], face.vn[1], face.vn[2], face.vt[1].t(), face.vt[2].t(), light_dir);
+
+    int u = face.vt[0].u();
     
     for (int x = l; x <= r; x++)
     {
         bool second_segment = x > m;
-        int y0 = std::min((second_segment ? middle_to_right->at((x - m) * 3) : left_to_middle->at((x - l) * 3)), left_to_right->at((x - l) * 3));
-        int y1 = std::max((second_segment ? middle_to_right->at((x - m) * 3) : left_to_middle->at((x - l) * 3)), left_to_right->at((x - l) * 3));
+        int y0 = std::min((second_segment ? middle_to_right->at((x - m) * 4) : left_to_middle->at((x - l) * 4)), left_to_right->at((x - l) * 4));
+        int y1 = std::max((second_segment ? middle_to_right->at((x - m) * 4) : left_to_middle->at((x - l) * 4)), left_to_right->at((x - l) * 4));
 
-        int z0 = std::min((second_segment ? middle_to_right->at((x - m) * 3 + 1) : left_to_middle->at((x - l) * 3 + 1)), left_to_right->at((x - l) * 3 + 1));
-        int z1 = std::max((second_segment ? middle_to_right->at((x - m) * 3 + 1) : left_to_middle->at((x - l) * 3 + 1)), left_to_right->at((x - l) * 3 + 1));
+        int z0 = std::min((second_segment ? middle_to_right->at((x - m) * 4 + 1) : left_to_middle->at((x - l) * 4 + 1)), left_to_right->at((x - l) * 4 + 1));
+        int z1 = std::max((second_segment ? middle_to_right->at((x - m) * 4 + 1) : left_to_middle->at((x - l) * 4 + 1)), left_to_right->at((x - l) * 4 + 1));
 
         float intens0 = (y0 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 2) : 
-                (second_segment ? middle_to_right->at((x - m) * 3 + 2) : left_to_middle->at((x - l) * 3 + 2)));
+                (second_segment ? middle_to_right->at((x - m) * 4 + 2) : left_to_middle->at((x - l) * 4 + 2)));
         float intens1 = (y1 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 2) : 
-                (second_segment ? middle_to_right->at((x - m) * 3 + 2) : left_to_middle->at((x - l) * 3 + 2)));
+                (second_segment ? middle_to_right->at((x - m) * 4 + 2) : left_to_middle->at((x - l) * 4 + 2)));
 
-        if (std::abs(intens0) > 1 || std::abs(intens1) > 1)
-            throw (std::overflow_error("intensity overflow"));
+        float t0 = (y0 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 3) : 
+                (second_segment ? middle_to_right->at((x - m) * 4 + 3) : left_to_middle->at((x - l) * 4 + 3)));
+        float t1 = (y1 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 2) : 
+                (second_segment ? middle_to_right->at((x - m) * 4 + 3) : left_to_middle->at((x - l) * 4 + 3)));
+
+        //if (std::abs(intens0) > 1 || std::abs(intens1) > 1)
+        //    throw (std::overflow_error("intensity overflow"));
 
         float k1 = float(z1 - z0) / (y1 - y0);
         float k2 = float(intens1 - intens0) / (y1 - y0);
+        float k3 = float(t1 - t0) / (y1 - y0);
         float z = z0;
+        float t = t0;
         float intensity = intens0;
         for (int y = y0; y < y1; y++)
         {
             if (zbuffer[x + y * WIDTH] < z)
             {
-                //if (intensity > 0)
-                image.set(x, y, TGAColor(255 * intensity, 255 * intensity, 255 * intensity));
+                TGAColor temp(texture.get(u, t));
+                image.set(x, y, TGAColor(temp[2] * intensity, temp[1] * intensity, temp[0] * intensity));
                 zbuffer[x + y * WIDTH] = (int)z;
             }
             z += k1;
             intensity += k2;
+            t += k3;
         }
+        u++;
     }
     
 }
@@ -198,6 +205,8 @@ void draw_colored_face (Face face, TGAImage& image, TGAColor color, std::vector<
 int main()
 {
     TGAImage image(WIDTH, HEIGHT, TGAImage::RGB);
+    TGAImage texture_diffuse;
+    texture_diffuse.read_tga_file("obj/african_head_diffuse.tga");
     
     Model model;
     model.init("obj/african_head.obj");
@@ -206,7 +215,7 @@ int main()
     std::vector<Vec3f> world_coords(3);
     std::vector<int> zbuffer(WIDTH * HEIGHT);
 
-    Vec3f light_dir(0.5, 0, 1);
+    Vec3f light_dir(0, 0, 1);
     light_dir.normalize();
  
     for (int i = 0; i < n; i++)
@@ -220,6 +229,8 @@ int main()
             face.v[j].x() = ((face.v[j].x() + 1) / 2) * WIDTH;
             face.v[j].y() = ((face.v[j].y() + 1) / 2) * HEIGHT;
             face.v[j].z() = ((face.v[j].z() + 1) / 2) * HEIGHT;
+            face.vt[j].u() *= WIDTH;
+            face.vt[j].t() *= HEIGHT;
         }
         std::vector<Vec3f> basis(2);
         basis[0] = Vec3f(world_coords[1].x() - world_coords[0].x(), world_coords[1].y() - world_coords[0].y(), world_coords[1].z() - world_coords[0].z());
@@ -231,7 +242,7 @@ int main()
         float intensity = light_dir[0] * norm[0] + light_dir[1] * norm[1] + light_dir[2] * norm[2];
         try {
         if (intensity > 0)
-            draw_colored_face(face, image, white, zbuffer, light_dir);
+            draw_colored_face(face, image, texture_diffuse, zbuffer, light_dir);
         }
         catch (std::exception& e)
         {

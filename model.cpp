@@ -17,7 +17,7 @@ void Model::init(std::string filename)
     int extra_val;
     Vec3f vertex;
     Vec3f norm;
-    Vec3f texture;
+    Vec2f texture;
 
     while (getline(input, line))
     {
@@ -32,7 +32,7 @@ void Model::init(std::string filename)
 
         if (trash == "vt")
         {
-            iline >> texture.x() >> texture.y() >> texture.z();
+            iline >> texture.u() >> texture.t();
             textures.push_back(texture);
         }
 

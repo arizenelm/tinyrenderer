@@ -14,7 +14,7 @@ private:
 public:
     std::vector<Vec3f> verts;
     std::vector<Vec3f> norms;
-    std::vector<Vec3f> textures;
+    std::vector<Vec2f> textures;
     struct Face
     {
         Vec3i v = {0, 0, 0};
