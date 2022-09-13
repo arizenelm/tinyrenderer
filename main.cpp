@@ -1,4 +1,3 @@
-
 #include "tgaimage/tgaimage.h"
 #include "model.h"
 #include <iostream>
@@ -79,25 +78,31 @@ void draw_face (std::vector<Vec3f> const& v, TGAImage& image, TGAColor color)
 }
 
 
-std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i0, Vec3f& i1, Vec3f& t0, Vec3f& t1, Vec3f& light_dir)
+std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i0, Vec3f& i1, Vec3f& vt0, Vec3f& vt1, Vec3f& light_dir)
 {
     
     std::unique_ptr<std::vector<float>> result = std::make_unique<std::vector<float>>();
 
     int x0 = v0.x();
+    //int u0 = vt0.u();
+    //int t0 = vt0.t();
+    //int u1 = vt1.u();
+    //int t1 = vt0.t();
     int y0 = v0.y();
     int z0 = v0.z();
     int x1 = v1.x();
     int y1 = v1.y();
     int z1 = v1.z();
+
     i0.normalize();
     i1.normalize();
 
-    float intens0 = std::abs(scalar_mult(light_dir, i0));
+    float intens0 = std::abs(scalar_mult(light_dir, i0));  // TODO: Подумать зачем тут нужен модуль //  
     float intens1 = std::abs(scalar_mult(light_dir, i1));
 
-
     result->reserve((x1 - x0 + 1) * 3);
+    //float u = u0;
+    //float t = t0;
     float y = y0;
     float z = z0;
     float intens = intens0;
@@ -105,11 +110,13 @@ std::unique_ptr<std::vector<float>> raw_line_all (Vec3f& v0, Vec3f& v1, Vec3f& i
     float k1 = float(y1 - y0) / (x1 - x0);
     float k2 = float(z1 - z0) / (x1 - x0);
     float k3 = float(intens1 - intens0) / (x1 - x0);
+    //float k4 = float(t1 - t0) / (x1 - x0);
     do
     {
-        result->push_back(int(y));
-        result->push_back(int(z));
+        result->push_back(int(y + 0.5));
+        result->push_back(int(z + 0.5));
         result->push_back(intens);
+        //result->push_back(t);
         y += k1;
         z += k2;
         intens += k3;
@@ -199,7 +206,7 @@ int main()
     std::vector<Vec3f> world_coords(3);
     std::vector<int> zbuffer(WIDTH * HEIGHT);
 
-    Vec3f light_dir(0, 0, 1);
+    Vec3f light_dir(0.5, 0, 1);
     light_dir.normalize();
  
     for (int i = 0; i < n; i++)
