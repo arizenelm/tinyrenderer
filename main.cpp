@@ -21,6 +21,13 @@ struct Face
     std::vector<Vec3f> vn = { Vec3f({0, 0, 0}),  Vec3f({0, 0, 0}),  Vec3f({0, 0, 0})};
 };
 
+struct Vertex
+{
+    Vec3f v = {0, 0, 0};
+    Vec2f vt = {0, 0};
+
+};
+
 inline float scalar_mult(Vec3f const& a, Vec3f const& b)
 {
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -41,7 +48,6 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
         std::swap(x0, x1);
         std::swap(y0, y1);
     }    
-    
     
     int x = x0;
     int y = y0;
@@ -159,25 +165,28 @@ void draw_colored_face (Face face, TGAImage& image, TGAImage& texture, std::vect
     for (int x = l; x <= r; x++)
     {
         bool second_segment = x > m;
-        int y0 = std::min((second_segment ? middle_to_right->at((x - m) * 4) : left_to_middle->at((x - l) * 4)), left_to_right->at((x - l) * 4));
-        int y1 = std::max((second_segment ? middle_to_right->at((x - m) * 4) : left_to_middle->at((x - l) * 4)), left_to_right->at((x - l) * 4));
 
-        int z0 = std::min((second_segment ? middle_to_right->at((x - m) * 4 + 1) : left_to_middle->at((x - l) * 4 + 1)), left_to_right->at((x - l) * 4 + 1));
-        int z1 = std::max((second_segment ? middle_to_right->at((x - m) * 4 + 1) : left_to_middle->at((x - l) * 4 + 1)), left_to_right->at((x - l) * 4 + 1));
+        auto get_lower = [&](int ii) { return second_segment ? middle_to_right->at((x - m) * 4 + ii) : left_to_middle->at((x - l) * 4 + ii); };
+        auto get_upper = [&](int ii) { return left_to_right->at((x - l) * 4 + ii); }; 
 
-        float intens0 = (y0 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 2) : 
-                (second_segment ? middle_to_right->at((x - m) * 4 + 2) : left_to_middle->at((x - l) * 4 + 2)));
-        float intens1 = (y1 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 2) : 
-                (second_segment ? middle_to_right->at((x - m) * 4 + 2) : left_to_middle->at((x - l) * 4 + 2)));
+        float lower_segment[4] = { get_lower(0), get_lower(1), get_lower(2), get_lower(3) };
+        float upper_segment[4] = { get_upper(0), get_upper(1), get_upper(2), get_upper(3) };
 
-        float t0 = (y0 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 3) : 
-                (second_segment ? middle_to_right->at((x - m) * 4 + 3) : left_to_middle->at((x - l) * 4 + 3)));
-        float t1 = (y1 == left_to_right->at((x - l) * 3) ? left_to_right->at((x - l) * 3 + 2) : 
-                (second_segment ? middle_to_right->at((x - m) * 4 + 3) : left_to_middle->at((x - l) * 4 + 3)));
+        if (lower_segment[0] > upper_segment[0])
+            std::swap(lower_segment, upper_segment);
 
-        //if (std::abs(intens0) > 1 || std::abs(intens1) > 1)
-        //    throw (std::overflow_error("intensity overflow"));
+        int y0 = lower_segment[0];
+        int y1 = upper_segment[0];
 
+        float z0 = lower_segment[1];
+        float z1 = upper_segment[1];
+
+        float intens0 = lower_segment[2];
+        float intens1 = upper_segment[2];
+
+        float t0 = lower_segment[3];
+        float t1 = upper_segment[3];
+     
         float k1 = float(z1 - z0) / (y1 - y0);
         float k2 = float(intens1 - intens0) / (y1 - y0);
         float k3 = float(t1 - t0) / (y1 - y0);
@@ -189,7 +198,7 @@ void draw_colored_face (Face face, TGAImage& image, TGAImage& texture, std::vect
             if (zbuffer[x + y * WIDTH] < z)
             {
                 TGAColor temp(texture.get(u, t));
-                image.set(x, y, TGAColor(temp[2] * intensity, temp[1] * intensity, temp[0] * intensity));
+                image.set(x, y, TGAColor(temp[2] * intensity, temp[1]* intensity, temp[0] * intensity));
                 zbuffer[x + y * WIDTH] = (int)z;
             }
             z += k1;
@@ -207,6 +216,7 @@ int main()
     TGAImage image(WIDTH, HEIGHT, TGAImage::RGB);
     TGAImage texture_diffuse;
     texture_diffuse.read_tga_file("obj/african_head_diffuse.tga");
+    texture_diffuse.flip_vertically();
     
     Model model;
     model.init("obj/african_head.obj");
@@ -214,7 +224,6 @@ int main()
     Face face;
     std::vector<Vec3f> world_coords(3);
     std::vector<int> zbuffer(WIDTH * HEIGHT);
-
     Vec3f light_dir(0, 0, 1);
     light_dir.normalize();
  
@@ -229,8 +238,8 @@ int main()
             face.v[j].x() = ((face.v[j].x() + 1) / 2) * WIDTH;
             face.v[j].y() = ((face.v[j].y() + 1) / 2) * HEIGHT;
             face.v[j].z() = ((face.v[j].z() + 1) / 2) * HEIGHT;
-            face.vt[j].u() *= WIDTH;
-            face.vt[j].t() *= HEIGHT;
+            face.vt[j].u() *= 1024;
+            face.vt[j].t() *= 1024;
         }
         std::vector<Vec3f> basis(2);
         basis[0] = Vec3f(world_coords[1].x() - world_coords[0].x(), world_coords[1].y() - world_coords[0].y(), world_coords[1].z() - world_coords[0].z());
