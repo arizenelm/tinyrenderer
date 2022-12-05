@@ -1,1 +1,1 @@
-Exercise of a simple OpenGL implementation
+Exercise of a simple renderer implementation based on https://github.com/ssloy/tinyrenderer
