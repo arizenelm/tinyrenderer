@@ -2,3 +2,5 @@
 .vs
 main
 output.txt
+build
+out

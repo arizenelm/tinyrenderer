@@ -40,6 +40,11 @@ public:
 
 };
 
+template<typename T>
+vec2<T> operator*(T k, vec2<T> v) {
+    return {v.x() * k, v.y() * k};
+}
+
 template <class T> class vec3
 {
 private:
@@ -75,10 +80,16 @@ public:
     inline vec3<T>& operator= (vec3<T> const& v) {x() = v[0]; y() = v[1]; z() = v[2]; return *this; }
     //inline vec3<T>& operator= (std::array<T, 3> arr) { c_xyz.x(arr[0]); c_xyz.y(arr[1]); c_xyz.z(arr[2]); return *this; }
     inline T norm() { return (sqrt(x() * x() + y() * y() + z() * z())); }
-    inline void normalize() { T n = norm(); x() = x() / n; y() = y() / n; z() = z() / n; }
+    inline float normalize() { T n = norm(); x() = x() / n; y() = y() / n; z() = z() / n; return n; }
+    inline vec3<T> normalized() { T n = norm(); return vec3<T> {x() / n, y() / n, z() / n}; }
 
     template <class > friend std::ostream& operator<<(std::ostream&, const vec3&);
 };
+
+template<typename T>
+vec3<T> operator*(T k, vec3<T> v) {
+    return vec3<T> {k * v.x(), k * v.y(), k * v.z()};
+}
 
 template<class T> std::ostream& operator<<(std::ostream &o, const vec2<T> &v)
 {
