@@ -4,6 +4,7 @@ project(render)
 
 set (SOURCES main.cpp model.cpp)
 set (HEADERS model.h geometry.h)
+set (CMAKE_COLOR_MAKEFILE ON)
 
 add_subdirectory(tgaimage)
 include_directories(tgaimage)

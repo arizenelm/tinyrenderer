@@ -214,7 +214,7 @@ void draw_colored_face1(Face face, TGAImage& image, TGAImage& texture, std::vect
 }
 
 
-void draw_face(Face face, TGAImage const& image, TGAImage const& texture, std::vector<int>& zbuffer, Vec3f& lightdir)
+void draw_face(Face face, TGAImage& image, TGAImage const& texture, std::vector<int>& zbuffer, Vec3f& lightdir)
 {
     int l, r, m;
 
@@ -246,7 +246,7 @@ void draw_face(Face face, TGAImage const& image, TGAImage const& texture, std::v
 
     float intens1, intens0;
     float y0, z0, t0, i0;
-    float y1, z1, y1, i1;
+    //float y1, z1, y1, i1;
 
     std::array<float, 3> dy;
     std::array<float, 3> dz;
@@ -261,16 +261,16 @@ void draw_face(Face face, TGAImage const& image, TGAImage const& texture, std::v
     //    left_to_middle = m - l;
     //if (m < r)
     //    middle_to_right = r - m;
-    for (int i = 0; i < 3; i++) {
-        auto f = [](int ii){ return ii + (ii < 2); };   // 0 -> 1, 1 -> 2, 2 -> 2
-        auto g = [](int ii){ return ii % 2; };          // 0 -> 0, 1 -> 1, 2 -> 0
-        intens0 = std::abs(scalar_mult(lightdir, face.vn[g(i)].normalized()));  
-        intens1 = std::abs(scalar_mult(lightdir, face.vn[f(i)].normalized()));
-        dy[i] = float(face.v[f(i)].y() - face.v[g(i)].y()) / (lrm[f(i)] - lrm[g(i)]);
-        dz[i] = float(face.v[f(i)].z() - face.v[g(i)].z()) / (lrm[f(i)] - lrm[g(i)]);
-        dt[i] = float(face.vt[f(i)].y() - face.vt[g(i)].y()) / (face.vt[f(i)].x() - face.vt[g(i)].x());
-        di[i] = float(intens1 - intens0) / (lrm[f(i)] - lrm[g(i)]); // divide by zero!
-    }
+    //for (int i = 0; i < 3; i++) {
+    //    auto f = [](int ii){ return ii + (ii < 2); };   // 0 -> 1, 1 -> 2, 2 -> 2
+    //    auto g = [](int ii){ return ii % 2; };          // 0 -> 0, 1 -> 1, 2 -> 0
+    //    intens0 = std::abs(scalar_mult(lightdir, face.vn[g(i)].normalized()));  
+    //    intens1 = std::abs(scalar_mult(lightdir, face.vn[f(i)].normalized()));
+    //    dy[i] = float(face.v[f(i)].y() - face.v[g(i)].y()) / (lrm[f(i)] - lrm[g(i)]);
+    //    dz[i] = float(face.v[f(i)].z() - face.v[g(i)].z()) / (lrm[f(i)] - lrm[g(i)]);
+    //    dt[i] = float(face.vt[f(i)].y() - face.vt[g(i)].y()) / (face.vt[f(i)].x() - face.vt[g(i)].x());
+    //    di[i] = float(intens1 - intens0) / (lrm[f(i)] - lrm[g(i)]); // divide by zero!
+    //}
 
     Vec3f ltm {face.v[1].x() - face.v[0].x(), face.v[1].y() - face.v[0].y(), face.v[1].z() - face.v[0].z()};
     Vec3f mtr {face.v[2].x() - face.v[1].x(), face.v[2].y() - face.v[1].y(), face.v[2].z() - face.v[1].z()};
@@ -286,8 +286,8 @@ void draw_face(Face face, TGAImage const& image, TGAImage const& texture, std::v
 
 
 
-    Vec3f v1, v2;
-    Vec2f vt1, vt2, vd, vtd;
+    Vec3f v1, v2, vd;
+    Vec2f vt1, vt2, vtd;
     float i1, i2;
 
     float intens_m = heaviside(scalar_mult(lightdir, face.vn[1]));
@@ -297,7 +297,7 @@ void draw_face(Face face, TGAImage const& image, TGAImage const& texture, std::v
     for (int i = l; i <= r; i++) {
         if (i <= m) {
             float k1 = float(i - l) / (m - l);      // To be optimized...
-            if (std::isnan(k1)) k1 = 1;
+            if (std::isnan(k1) || std::isinf(k1)) k1 = 1;
             float k2 = float(i - l) / (r - l);
             v1 = face.v[0] + k1 * ltm;
             v2 = face.v[0] + k2 * ltr;  
@@ -309,12 +309,22 @@ void draw_face(Face face, TGAImage const& image, TGAImage const& texture, std::v
         else {
 
         }
-        vd = {v2.x() - v1.x(), v2.y() - v1.y()};
+        //vd = {v2.x() - v1.x(), v2.y() - v1.y()};
+        vd = v2 - v1;
         vtd = vt2 - vt1;
         float bottom = std::min(v1.y(), v2.y());
         float top = std::max(v1.y(), v2.y());
         for (int j = bottom; j <= top; j++) {
             // bottom can be equal to top
+            float k3 = float(j - bottom) / (top - bottom);
+            if (std::isnan(k3) || std::isinf(k3)) k3 = 1;
+            Vec3f pixel = vd * k3;
+            Vec2f texture_pixel = vtd * k3;
+            if (zbuffer[pixel.x() + pixel.y() * WIDTH] < pixel.z()) {
+                auto color = texture.get(texture_pixel.x(), texture_pixel.y());
+                image.set(pixel.x(), pixel.y(), color);
+                zbuffer[pixel.x() + pixel.y() * WIDTH] = static_cast<int>(pixel.z());
+            }
         }
 
     }
@@ -362,7 +372,8 @@ int main()
         float intensity = light_dir[0] * norm[0] + light_dir[1] * norm[1] + light_dir[2] * norm[2];
         try {
         if (intensity > 0)
-            draw_colored_face1(face, image, texture_diffuse, zbuffer, light_dir);
+            //draw_colored_face1(face, image, texture_diffuse, zbuffer, light_dir);
+            draw_face(face, image, texture_diffuse, zbuffer, light_dir);
         }
         catch (std::exception& e)
         {

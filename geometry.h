@@ -75,8 +75,8 @@ public:
     //inline T& t() {return c_ut.t}
 
     inline vec3<T> operator+ (vec3<T> v) { return vec3<T>(x() + v.x(), y() + v.y(), z() + v.z()); }
-    inline vec3<T> operator- (vec3<T> v) { return vec3<T>(x() - v.x(), y() - v.y()); }
-    inline vec3<T> operator* (T l) { x() *= l; y() *= l; z() *= l; return this; }
+    inline vec3<T> operator- (vec3<T> v) { return vec3<T>(x() - v.x(), y() - v.y(), z() - v.z()); }
+    inline vec3<T> operator* (T l) { return vec3<T>{x() * l, y() * l, z() * l};}
     inline vec3<T>& operator= (vec3<T> const& v) {x() = v[0]; y() = v[1]; z() = v[2]; return *this; }
     //inline vec3<T>& operator= (std::array<T, 3> arr) { c_xyz.x(arr[0]); c_xyz.y(arr[1]); c_xyz.z(arr[2]); return *this; }
     inline T norm() { return (sqrt(x() * x() + y() * y() + z() * z())); }
