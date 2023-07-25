@@ -174,18 +174,4 @@ typedef vec3<int> Vec3i;
 typedef vec2<float> Vec2f;
 typedef vec3<float> Vec3f;
 
-
-
-
-inline float scalar_product(Vec3f const& a, Vec3f const& b)
-{
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
-
-inline Vec3f vector_product(Vec3f const& a, Vec3f const& b)
-{
-    return Vec3f{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
-}
-
-
 #endif
