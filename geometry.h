@@ -24,6 +24,7 @@ private:
 public:
     vec2() : c_xy{0, 0} {}
     vec2(T _x, T _y) : c_xy{_x, _y} {}
+    vec2(vec2<T> const& v) = default;
     T operator[] (int) const;
     inline T& x()  { return c_xy.x; }
     inline T& y()  { return c_xy.y; }
@@ -33,8 +34,8 @@ public:
 
     inline vec2<T> operator+ (vec2<T> v) { return vec2<T>(x() + v.x(), y() + v.y()); }
     inline vec2<T> operator- (vec2<T> v) { return vec2<T>(x() - v.x(), y() - v.y()); }
-    inline vec2<T> operator* (T l) { x() *= l; y() *= l; return *this; }
-    vec2<T>& operator= (vec2<T> v) {c_xy.x = v.x(); c_xy.y = v.y(); return *this; }
+    inline vec2<T> const operator* (T l) { return vec2<T>{c_xy.x * l, c_xy.y * l}; }
+    vec2<T>& operator= (vec2<T> const& v) {c_xy.x = v.c_xy.x; c_xy.y = v.c_xy.y; return *this; }
 
     template <class > friend std::ostream& operator<<(std::ostream&, const vec2&);
 
@@ -63,6 +64,7 @@ private:
 public:
 
     vec3() : c_xyz{0, 0, 0} {}
+    vec3(vec3<T> const& v) = default;
     vec3(T _x, T _y, T _z) : c_xyz{_x, _y, _z} {}
     //vec3(std::array<T, 3> arr) {c_xyz.x(arr[0]); c_xyz.y(arr[1]); c_xyz.z(arr[2]); return *this;}
     T operator[] (int) const;
@@ -74,14 +76,14 @@ public:
     //inline T& u() {return c_ut.u}
     //inline T& t() {return c_ut.t}
 
-    inline vec3<T> operator+ (vec3<T> v) { return vec3<T>(x() + v.x(), y() + v.y(), z() + v.z()); }
-    inline vec3<T> operator- (vec3<T> v) { return vec3<T>(x() - v.x(), y() - v.y(), z() - v.z()); }
-    inline vec3<T> operator* (T l) { return vec3<T>{x() * l, y() * l, z() * l};}
-    inline vec3<T>& operator= (vec3<T> const& v) {x() = v[0]; y() = v[1]; z() = v[2]; return *this; }
+    vec3<T> operator+ (vec3<T> v) { return vec3<T>(x() + v.x(), y() + v.y(), z() + v.z()); }
+    vec3<T> operator- (vec3<T> v) { return vec3<T>(x() - v.x(), y() - v.y(), z() - v.z()); }
+    vec3<T> operator* (T l) { return vec3<T>{x() * l, y() * l, z() * l};}
+    vec3<T>& operator= (vec3<T> const& v) {c_xyz.x = v.c_xyz.x; c_xyz.y = v.c_xyz.y; c_xyz.z = v.c_xyz.z; return *this; }
     //inline vec3<T>& operator= (std::array<T, 3> arr) { c_xyz.x(arr[0]); c_xyz.y(arr[1]); c_xyz.z(arr[2]); return *this; }
-    inline T norm() { return (sqrt(x() * x() + y() * y() + z() * z())); }
-    inline float normalize() { T n = norm(); x() = x() / n; y() = y() / n; z() = z() / n; return n; }
-    inline vec3<T> normalized() { T n = norm(); return vec3<T> {x() / n, y() / n, z() / n}; }
+    T norm() const { return (sqrt(c_xyz.x * c_xyz.x + c_xyz.y * c_xyz.y + c_xyz.z * c_xyz.z)); }
+    float normalize() { T n = norm(); x() = x() / n; y() = y() / n; z() = z() / n; return n; }
+    vec3<T> normalized() const { T n = norm(); return vec3<T> {c_xyz.x / n, c_xyz.y / n, c_xyz.z / n}; }
 
     template <class > friend std::ostream& operator<<(std::ostream&, const vec3&);
 };

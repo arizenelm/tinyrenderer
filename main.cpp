@@ -7,12 +7,11 @@
 #include <memory>
 #include <random>
 
-const TGAColor white = TGAColor(255, 255, 255, 255);
-const TGAColor red = TGAColor(255, 0, 0, 255);
-const TGAColor some_random_color(154, 234, 99, 255);
-const TGAColor some_blue(15, 0, 220, 255);
-unsigned int HEIGHT = 1000;
-unsigned int WIDTH = 1000;
+const TGAColor WHITE = TGAColor(255, 255, 255, 255);
+const TGAColor RED = TGAColor(255, 0, 0, 255);
+const TGAColor SOME_BLUE(15, 0, 220, 255);
+int HEIGHT = 1000;
+int WIDTH = 1000;
 
 struct Face
 {
@@ -158,6 +157,7 @@ void draw_colored_face1(Face face, TGAImage& image, TGAImage& texture, std::vect
     auto left_to_right = raw_line_all (face.v[0], face.v[2], face.vn[0], face.vn[2], face.vt[0].t(), face.vt[2].t(), light_dir);
     auto left_to_middle = raw_line_all (face.v[0], face.v[1], face.vn[0], face.vn[1], face.vt[0].t(), face.vt[1].t(), light_dir);
     auto middle_to_right = raw_line_all (face.v[1], face.v[2], face.vn[1], face.vn[2], face.vt[1].t(), face.vt[2].t(), light_dir);
+    //float intensity = std::abs(scalar_product(light_dir, (face.vn[0] + face.vn[1] + face.vn[2]).normalized()));
 
     int u = face.vt[0].u();
     
@@ -174,8 +174,11 @@ void draw_colored_face1(Face face, TGAImage& image, TGAImage& texture, std::vect
         if (lower_segment[0] > upper_segment[0])
             std::swap(lower_segment, upper_segment);
 
-        int y0 = lower_segment[0];
-        int y1 = upper_segment[0];
+        //int y0 = lower_segment[0];
+        //int y1 = upper_segment[0];
+        
+        int y0 = std::min(lower_segment[0], upper_segment[0]);
+        int y1 = std::max(lower_segment[0], upper_segment[0]);
 
         float z0 = lower_segment[1];
         float z1 = upper_segment[1];
@@ -198,6 +201,7 @@ void draw_colored_face1(Face face, TGAImage& image, TGAImage& texture, std::vect
             {
                 TGAColor temp(texture.get(u, t));
                 image.set(x, y, TGAColor(temp[2] * intensity, temp[1]* intensity, temp[0] * intensity));
+                image.set(x, y, TGAColor(255 * intensity, 255 * intensity, 255 * intensity));
                 zbuffer[x + y * WIDTH] = (int)z;
             }
             z += k1;
@@ -240,47 +244,13 @@ void draw_face(Face face, TGAImage& image, TGAImage const& texture, std::vector<
     if (l == r)
         return;
 
-    float intens1, intens0;
-    float y0, z0, t0, i0;
-    //float y1, z1, y1, i1;
+    Vec3f ltm = face.v[1] - face.v[0];
+    Vec3f mtr = face.v[2] - face.v[1];
+    Vec3f ltr = face.v[2] - face.v[0];
 
-    std::array<float, 3> dy;
-    std::array<float, 3> dz;
-    std::array<float, 3> dt;
-    std::array<float, 3> di;
-    std::array<int, 3> lrm = {l, r, m};
-
-    //float left_to_middle;
-    //float middle_to_right;
-
-    //if (m > l)
-    //    left_to_middle = m - l;
-    //if (m < r)
-    //    middle_to_right = r - m;
-    //for (int i = 0; i < 3; i++) {
-    //    auto f = [](int ii){ return ii + (ii < 2); };   // 0 -> 1, 1 -> 2, 2 -> 2
-    //    auto g = [](int ii){ return ii % 2; };          // 0 -> 0, 1 -> 1, 2 -> 0
-    //    intens0 = std::abs(scalar_mult(lightdir, face.vn[g(i)].normalized()));  
-    //    intens1 = std::abs(scalar_mult(lightdir, face.vn[f(i)].normalized()));
-    //    dy[i] = float(face.v[f(i)].y() - face.v[g(i)].y()) / (lrm[f(i)] - lrm[g(i)]);
-    //    dz[i] = float(face.v[f(i)].z() - face.v[g(i)].z()) / (lrm[f(i)] - lrm[g(i)]);
-    //    dt[i] = float(face.vt[f(i)].y() - face.vt[g(i)].y()) / (face.vt[f(i)].x() - face.vt[g(i)].x());
-    //    di[i] = float(intens1 - intens0) / (lrm[f(i)] - lrm[g(i)]); // divide by zero!
-    //}
-
-    Vec3f ltm {face.v[1].x() - face.v[0].x(), face.v[1].y() - face.v[0].y(), face.v[1].z() - face.v[0].z()};
-    Vec3f mtr {face.v[2].x() - face.v[1].x(), face.v[2].y() - face.v[1].y(), face.v[2].z() - face.v[1].z()};
-    Vec3f ltr {face.v[2].x() - face.v[0].x(), face.v[2].y() - face.v[0].y(), face.v[2].z() - face.v[0].z()};
-
-    Vec2f ltm_t {face.vt[1].x() - face.vt[0].x(), face.vt[1].y() - face.vt[0].y()};
-    Vec2f mtr_t {face.vt[2].x() - face.vt[1].x(), face.vt[2].y() - face.vt[1].y()};
-    Vec2f ltr_t {face.vt[2].x() - face.vt[0].x(), face.vt[2].y() - face.vt[0].y()};
-
-    //float k0 = ltm.normalize();
-    //float k1 = ltm.normalize();
-    //float k2 = ltm.normalize();
-
-
+    Vec2f ltm_t = face.vt[1] - face.vt[0];
+    Vec2f mtr_t = face.vt[2] - face.vt[1]; 
+    Vec2f ltr_t = face.vt[2] - face.vt[0];
 
     Vec3f v1, v2, vd;
     Vec2f vt1, vt2, vtd;
@@ -289,50 +259,57 @@ void draw_face(Face face, TGAImage& image, TGAImage const& texture, std::vector<
     float intens_m = heaviside(scalar_product(lightdir, face.vn[1]));
     float intens_l = heaviside(scalar_product(face.vn[0], lightdir));
     float intens_r = heaviside(scalar_product(face.vn[2], lightdir));
-    float intensity = scalar_product(lightdir, vector_product(face.v[0], face.v[1]));
+    //float intensity = heaviside(scalar_product(lightdir, (face.vn[0] + face.vn[1] + face.vn[2]).normalized()));
 
     for (int i = l; i <= r; i++) {
         if (i <= m) {
             float k1 = float(i - l) / (m - l);      // To be optimized...
             if (std::isnan(k1) || std::isinf(k1)) k1 = 1;
-            float k2 = float(i - l) / (r - l);
             v1 = face.v[0] + k1 * ltm;
-            v2 = face.v[0] + k2 * ltr;  
             vt1 = face.vt[0] + k1 * ltm_t;
-            vt2 = face.vt[0] + k2 * ltr_t;
-            i1 = intens_l + k1;
-            i2 = intens_l + k2;
+            i1 = intens_l + k1 * (intens_m - intens_l);
         }
         else {
             float k1 = float(i - m) / (r - m);
             if (std::isnan(k1) || std::isinf(k1)) k1 = 1;
-            float k2 = float(i - l) / (r - l);
             v1 = face.v[1] + k1 * mtr;
-            v2 = face.v[0] + k2 * ltr;
             vt1 = face.vt[1] + k1 * mtr_t;
-            vt2 = face.vt[0] + k2 * ltr_t;
-            i1 = intens_m + k1;
-            i2 = intens_l + k2;
+            i1 = intens_m + k1 * (intens_r - intens_m);
         }
-        //vd = {v2.x() - v1.x(), v2.y() - v1.y()};
-        vd = v2 - v1;
-        vtd = vt2 - vt1;
-        float bottom = std::roundf(std::min(v1.y(), v2.y()));
-        float top = std::roundf(std::max(v1.y(), v2.y()));
-        for (int j = bottom; j <= top; j++) {
-            float k3 = float(j - bottom) / (top - bottom);
-            if (std::isnan(k3) || std::isinf(k3)) k3 = 1;
-            Vec3f pixel = v1 + vd * k3;
-            Vec2f texture_pixel = vt1 + vtd * k3;
-            //float intensity = i1 + (i2 - i1) * k3;
-            if (zbuffer[pixel.x() + pixel.y() * WIDTH] < pixel.z()) {
+        float k2 = float(i - l) / (r - l);
+        v2 = face.v[0] + k2 * ltr;  
+        vt2 = face.vt[0] + k2 * ltr_t;
+        i2 = intens_l + k2 * (intens_r - intens_l);
+        if (v1.y() > v2.y()) { 
+            std::swap(v1, v2);
+            std::swap(i1, i2);
+            std::swap(vt1, vt2);
+        }
+        float dy = v2.y() - v1.y();
+        Vec3f pixelf = v1;
+        Vec2f texture_pixel = vt1;
+        Vec3f vd = {0, 1, (v2.z() - v1.z()) / dy};
+        Vec2f vtd = {(vt2.x() - vt1.x()) / dy, (vt2.y() - vt1.y()) / dy}; 
+        float di = (i2 - i1) / dy;
+        float intensity = i1;
+        for (int j = 0; j <= dy; j++) {                            // To be optimized...
+            //float k3 = static_cast<float>(j - v1.y()) / (v2.y() - v1.y());
+            //if (std::isnan(k3)) k3 = 1;
+            //Vec3f interpolated_xy = {v1.x(), static_cast<float>(j), v1.z() + vd.z() * k3};
+            // float to int
+            Vec3i pixeli = {static_cast<int>(pixelf.x()), static_cast<int>(pixelf.y()), 
+                static_cast<int>(pixelf.z())};
+            if (zbuffer[pixeli.x() + pixeli.y() * HEIGHT] < pixelf.z()) {
                 auto color = texture.get(texture_pixel.x(), texture_pixel.y());
+                //auto color = WHITE;
                 color[0] *= intensity; color[1] *= intensity; color[2] *= intensity;
-                image.set(pixel.x(), pixel.y(), TGAColor(255 * intensity, 255 * intensity, 255 * intensity));
-                zbuffer[pixel.x() + pixel.y() * WIDTH] = static_cast<int>(pixel.z());
+                image.set(pixeli.x(), pixeli.y(), color);
+                zbuffer[pixeli.x() + pixeli.y() * HEIGHT] = pixeli.z();
             }
+            pixelf = pixelf + vd;
+            texture_pixel = texture_pixel + vtd;
+            intensity += di;
         }
-
     }
 
 
@@ -354,7 +331,6 @@ int main()
     Vec3f light_dir(0, 0, 1);
     light_dir.normalize();
 
-    /*
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < 3; j++)
@@ -366,6 +342,10 @@ int main()
             face.v[j].x() = ((face.v[j].x() + 1) / 2) * WIDTH;
             face.v[j].y() = ((face.v[j].y() + 1) / 2) * HEIGHT;
             face.v[j].z() = ((face.v[j].z() + 1) / 2) * HEIGHT;
+            //face.v[j].x() = ((face.v[j].x() + 100) / 200) * WIDTH;
+            //face.v[j].y() = ((face.v[j].y() + 100) / 200) * WIDTH;
+            //face.v[j].z() = ((face.v[j].z() + 100) / 200) * WIDTH;
+            
             face.vt[j].u() *= 1024;
             face.vt[j].t() *= 1024;
         }
@@ -388,12 +368,16 @@ int main()
             return 0;
         }
     }
-    */
 
-    face.v = {{200, 200, 200}, {500, 1000, 400}, {800, 150, 400}};
-    face.vn = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
-    face.vt = {{10, 10}, {10, 10}, {10, 10}};
-    draw_face(face, image, texture_diffuse, zbuffer, light_dir);
+    //Face face1, face2;
+    //face1.v = {{200, 200, 500}, {200, 800, 200}, {600, 200, 200}};
+    //face1.vn = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
+    //face1.vt = {{10, 10}, {10, 10}, {10, 10}};
+    //face2.v = {{200, 800, 200}, {600, 200, 200}, {600, 800, 200}};
+    //face2.vn = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
+    //face2.vt = {{10, 10}, {10, 10}, {10, 10}};
+    //draw_face(face1, image, texture_diffuse, zbuffer, light_dir);
+    //draw_face(face2, image, texture_diffuse, zbuffer, light_dir);
 
     TGAImage image1(WIDTH, HEIGHT, TGAImage::RGB);
     for (int x = 0; x < WIDTH; x++)
